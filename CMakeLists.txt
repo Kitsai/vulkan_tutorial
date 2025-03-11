@@ -1,7 +1,12 @@
 cmake_minimum_required(VERSION 3.10...3.27.0)
 project(VulkanTutorial)
-
 include(FetchContent)
+
+if(NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE
+      Release
+      CACHE STRING "" FORCE)
+endif()
 
 FetchContent_Declare(
     glfw
