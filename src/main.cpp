@@ -139,6 +139,7 @@ struct BufferWithAllocation {
     VkBuffer buffer;
     VmaAllocation allocation;
     VmaAllocationInfo allocation_info;
+    void* ptr;
 };
 
 class HelloTriangleApplication {
@@ -758,42 +759,32 @@ class HelloTriangleApplication {
         VkDeviceSize bufferSize = sizeof(vertices[0]) * vertices.size();
 
         BufferWithAllocation stagingBuffer;
-        createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-                     VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                     VMA_MEMORY_USAGE_CPU_ONLY, stagingBuffer);
+        createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_CPU_ONLY, stagingBuffer);
 
-        void* data;
-        vmaMapMemory(allocator, stagingBuffer.allocation, &data);
-        memcpy(data, vertices.data(), static_cast<size_t>(bufferSize));
-        vmaUnmapMemory(allocator, stagingBuffer.allocation);
+        memcpy(stagingBuffer.ptr, vertices.data(), static_cast<size_t>(bufferSize));
 
         createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-                     VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, VMA_MEMORY_USAGE_GPU_ONLY, vertexBuffer);
+                     VMA_MEMORY_USAGE_GPU_ONLY, vertexBuffer);
 
         copyBuffer(stagingBuffer, vertexBuffer, bufferSize);
 
-        vmaDestroyBuffer(allocator, stagingBuffer.buffer, stagingBuffer.allocation);
+        destroyBuffer(stagingBuffer);
     }
 
     void createIndexBuffer() {
         VkDeviceSize bufferSize = sizeof(indices[0]) * indices.size();
 
         BufferWithAllocation stagingBuffer;
-        createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-                     VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                     VMA_MEMORY_USAGE_CPU_ONLY, stagingBuffer);
+        createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_CPU_ONLY, stagingBuffer);
 
-        void* data;
-        vmaMapMemory(allocator, stagingBuffer.allocation, &data);
-        memcpy(data, indices.data(), bufferSize);
-        vmaUnmapMemory(allocator, stagingBuffer.allocation);
+        memcpy(stagingBuffer.ptr, indices.data(), bufferSize);
 
         createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
-                     VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, VMA_MEMORY_USAGE_GPU_ONLY, indexBuffer);
+                     VMA_MEMORY_USAGE_GPU_ONLY, indexBuffer);
 
         copyBuffer(stagingBuffer, indexBuffer, bufferSize);
 
-        vmaDestroyBuffer(allocator, stagingBuffer.buffer, stagingBuffer.allocation);
+        destroyBuffer(stagingBuffer);
     }
 
     uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties) {
@@ -855,9 +846,9 @@ class HelloTriangleApplication {
 
         cleanupSwapChain();
 
-        vmaDestroyBuffer(allocator, indexBuffer.buffer, indexBuffer.allocation);
+        destroyBuffer(indexBuffer);
 
-        vmaDestroyBuffer(allocator, vertexBuffer.buffer, vertexBuffer.allocation);
+        destroyBuffer(vertexBuffer);
 
         vmaDestroyAllocator(allocator);
 
@@ -1126,8 +1117,8 @@ class HelloTriangleApplication {
         currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
     }
 
-    void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties,
-                      VmaMemoryUsage memoryUsage, BufferWithAllocation& buffer) {
+    void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VmaMemoryUsage memoryUsage,
+                      BufferWithAllocation& buffer) {
         VkBufferCreateInfo bufferInfo{};
         bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
         bufferInfo.size = size;
@@ -1136,11 +1127,17 @@ class HelloTriangleApplication {
 
         VmaAllocationCreateInfo allocInfo{};
         allocInfo.usage = memoryUsage;
-        allocInfo.preferredFlags = properties;
 
         if(vmaCreateBuffer(allocator, &bufferInfo, &allocInfo, &buffer.buffer, &buffer.allocation,
                            &buffer.allocation_info) != VK_SUCCESS)
             throw std::runtime_error("failed to craete buffer!");
+
+        vmaMapMemory(allocator, buffer.allocation, &buffer.ptr);
+    }
+
+    void destroyBuffer(BufferWithAllocation& buffer) {
+        vmaUnmapMemory(allocator, buffer.allocation);
+        vmaDestroyBuffer(allocator, buffer.buffer, buffer.allocation);
     }
 
     void copyBuffer(const BufferWithAllocation& srcBuffer, const BufferWithAllocation& dstBuffer, VkDeviceSize size) {
