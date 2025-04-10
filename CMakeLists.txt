@@ -27,6 +27,16 @@ if(NOT Vulkan_FOUND)
     message(FATAL_ERROR "Vulkan SDK not found.")
 endif()
 
+FetchContent_Declare(
+    vma
+    GIT_REPOSITORY https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator.git
+    GIT_TAG v3.0.1
+)
+FetchContent_GetProperties(vma)
+if(NOT vma_POPULATED)
+    FetchContent_Populate(vma)
+    # Don't build the library, just use the header
+endif()
 
 if(WIN32)
     set(CMAKE_C_COMPILER "clang")
