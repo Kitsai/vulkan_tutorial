@@ -149,9 +149,9 @@ struct BufferWithAllocation {
 };
 
 struct UniformBufferObject {
-    glm::mat4 model;
-    glm::mat4 view;
-    glm::mat4 proj;
+    alignas(16) glm::mat4 model;
+    alignas(16) glm::mat4 view;
+    alignas(16) glm::mat4 proj;
 };
 
 class HelloTriangleApplication {
@@ -1254,11 +1254,6 @@ class HelloTriangleApplication {
             throw std::runtime_error("failed to craete buffer!");
 
         vmaMapMemory(allocator, buffer.allocation, &buffer.ptr);
-    }
-
-    void destroyBuffer(BufferWithAllocation& buffer) {
-        vmaUnmapMemory(allocator, buffer.allocation);
-        vmaDestroyBuffer(allocator, buffer.buffer, buffer.allocation);
     }
 
     void copyBuffer(const BufferWithAllocation& srcBuffer, const BufferWithAllocation& dstBuffer, VkDeviceSize size) {
