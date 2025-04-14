@@ -821,6 +821,9 @@ class HelloTriangleApplication {
         memcpy(stagingBuffer.ptr, pixels, static_cast<size_t>(imageSize));
 
         stbi_image_free(pixels);
+
+        createImage(texWidth, texHeight, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_TILING_OPTIMAL,
+                    VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU, texture);
     }
     void createVertexBuffer() {
         VkDeviceSize bufferSize = sizeof(vertices[0]) * vertices.size();
